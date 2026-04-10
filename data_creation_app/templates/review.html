@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Review Dataset</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 900px;
+      margin: 0 auto 2rem;
+      flex-wrap: gap;
+      gap: 1rem;
+    }
+
+    .topbar h1 { font-size: 1.4rem; font-weight: 700; color: #f0f0f0; }
+    .topbar .sub { font-size: 0.82rem; color: #6b7280; margin-top: 2px; }
+
+    .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+    button {
+      padding: 0.55rem 1.1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.2s;
+    }
+
+    button:hover { opacity: 0.85; }
+
+    .btn-save {
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: white;
+    }
+
+    .btn-export {
+      background: #1a1d27;
+      color: #a78bfa;
+      border: 1px solid #2a2d3e;
+    }
+
+    .btn-new {
+      background: #1a1d27;
+      color: #9ca3af;
+      border: 1px solid #2a2d3e;
+    }
+
+    .btn-delete {
+      background: transparent;
+      color: #f87171;
+      border: 1px solid #3b1c1c;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.78rem;
+      border-radius: 6px;
+    }
+
+    .stats-bar {
+      max-width: 900px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      border-radius: 10px;
+      padding: 0.6rem 1.1rem;
+      font-size: 0.82rem;
+    }
+
+    .stat strong { color: #a78bfa; font-size: 1.1rem; display: block; }
+
+    .filter-bar {
+      max-width: 900px;
+      margin: 0 auto 1.2rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      color: #6b7280;
+      padding: 0.35rem 0.85rem;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    .filter-btn.active {
+      background: #7c3aed22;
+      border-color: #7c3aed;
+      color: #a78bfa;
+    }
+
+    .cards { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 1rem; }
+
+    .qa-card {
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      border-radius: 12px;
+      padding: 1.2rem 1.4rem;
+      transition: border-color 0.2s;
+    }
+
+    .qa-card:hover { border-color: #3b3f5c; }
+    .qa-card.hidden { display: none; }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.8rem;
+      gap: 0.5rem;
+    }
+
+    .card-left { display: flex; align-items: center; gap: 0.6rem; }
+
+    .idx {
+      font-size: 0.72rem;
+      color: #4b5563;
+      font-weight: 600;
+      min-width: 28px;
+    }
+
+    .type-badge {
+      font-size: 0.7rem;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* Type colors */
+    .type-procedural        { background: #1e3a5f; color: #60a5fa; }
+    .type-compliance        { background: #3b1c1c; color: #f87171; }
+    .type-role_responsibility { background: #1e3340; color: #34d399; }
+    .type-condition_trigger { background: #2d2210; color: #fbbf24; }
+    .type-definition_concept { background: #1e1e3a; color: #a78bfa; }
+    .type-exception_escalation { background: #2d1e38; color: #e879f9; }
+    .type-timeline_sla      { background: #1a2d1a; color: #86efac; }
+    .type-multi_hop         { background: #1e2d2d; color: #22d3ee; }
+
+    .field-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #4b5563;
+      margin-bottom: 0.3rem;
+    }
+
+    .qa-card textarea {
+      width: 100%;
+      background: #12141e;
+      border: 1px solid #1f2235;
+      border-radius: 8px;
+      padding: 0.6rem 0.8rem;
+      color: #e0e0e0;
+      font-size: 0.88rem;
+      font-family: inherit;
+      line-height: 1.5;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .qa-card textarea:focus { border-color: #7c3aed; }
+
+    .q-field { margin-bottom: 0.8rem; }
+
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      padding: 0.7rem 1.2rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s;
+      z-index: 999;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { border-color: #065f46; color: #34d399; }
+    .toast.error   { border-color: #7f1d1d; color: #f87171; }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #4b5563;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div>
+      <h1>Review Dataset</h1>
+      <div class="sub" id="countLabel">{{ dataset|length }} QA pairs generated</div>
+    </div>
+    <div class="actions">
+      <button class="btn-new" onclick="window.location.href='/'">← New</button>
+      <button class="btn-export" onclick="exportJSON()">Export JSON</button>
+      <button class="btn-save" onclick="saveDataset()">Save Dataset</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar" id="statsBar"></div>
+
+  <!-- Type filter -->
+  <div class="filter-bar" id="filterBar">
+    <button class="filter-btn active" onclick="filterType('all', this)">All</button>
+  </div>
+
+  <!-- Cards -->
+  <div class="cards" id="cardsContainer">
+    {% for item in dataset %}
+    <div class="qa-card" data-type="{{ item.type }}" data-index="{{ loop.index0 }}">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="idx">#{{ loop.index }}</span>
+          <span class="type-badge type-{{ item.type }}">{{ item.type.replace('_', ' ') }}</span>
+        </div>
+        <button class="btn-delete" onclick="deleteCard(this)">✕ Remove</button>
+      </div>
+
+      <div class="q-field">
+        <div class="field-label">Question</div>
+        <textarea rows="2" class="q-text">{{ item.question }}</textarea>
+      </div>
+
+      <div>
+        <div class="field-label">Ground Truth</div>
+        <textarea rows="3" class="a-text">{{ item.ground_truth }}</textarea>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="empty-state" id="emptyState">No pairs match this filter.</div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Build stats ----
+    function buildStats() {
+      const cards = [...document.querySelectorAll('.qa-card:not(.deleted)')];
+      const typeCounts = {};
+      cards.forEach(c => {
+        const t = c.dataset.type;
+        typeCounts[t] = (typeCounts[t] || 0) + 1;
+      });
+
+      const bar = document.getElementById('statsBar');
+      bar.innerHTML = `
+        <div class="stat"><strong>${cards.length}</strong>Total Pairs</div>
+        ${Object.entries(typeCounts).map(([t, n]) =>
+          `<div class="stat"><strong>${n}</strong>${t.replace(/_/g,' ')}</div>`
+        ).join('')}
+      `;
+
+      document.getElementById('countLabel').textContent = `${cards.length} QA pairs`;
+    }
+
+    // ---- Build filter buttons ----
+    function buildFilters() {
+      const types = [...new Set([...document.querySelectorAll('.qa-card')].map(c => c.dataset.type))];
+      const bar = document.getElementById('filterBar');
+      types.forEach(t => {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn';
+        btn.textContent = t.replace(/_/g, ' ');
+        btn.onclick = () => filterType(t, btn);
+        bar.appendChild(btn);
+      });
+    }
+
+    // ---- Filter ----
+    function filterType(type, btn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      document.querySelectorAll('.qa-card').forEach(card => {
+        if (type === 'all' || card.dataset.type === type) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    }
+
+    // ---- Delete ----
+    function deleteCard(btn) {
+      const card = btn.closest('.qa-card');
+      card.classList.add('deleted');
+      card.style.display = 'none';
+      buildStats();
+      showToast('Pair removed', 'success');
+    }
+
+    // ---- Collect dataset ----
+    function collectData() {
+      const cards = [...document.querySelectorAll('.qa-card:not(.deleted)')].filter(c => c.style.display !== 'none' || true);
+      return [...document.querySelectorAll('.qa-card:not(.deleted)')].map(card => ({
+        question: card.querySelector('.q-text').value.trim(),
+        ground_truth: card.querySelector('.a-text').value.trim(),
+        type: card.dataset.type
+      })).filter(item => item.question && item.ground_truth);
+    }
+
+    // ---- Save ----
+    async function saveDataset() {
+      const data = collectData();
+      try {
+        const res = await fetch('/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        showToast(`✓ Saved ${result.count} pairs to evaluation_dataset.json`, 'success');
+      } catch (e) {
+        showToast('Save failed: ' + e.message, 'error');
+      }
+    }
+
+    // ---- Export JSON ----
+    function exportJSON() {
+      const data = collectData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'evaluation_dataset.json';
+      a.click();
+      showToast(`Exported ${data.length} pairs`, 'success');
+    }
+
+    // ---- Toast ----
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `toast ${type} show`;
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // ---- Init ----
+    buildStats();
+    buildFilters();
+  </script>
+</body>
+</html>

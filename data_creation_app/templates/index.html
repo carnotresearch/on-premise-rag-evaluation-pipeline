@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QA Dataset Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0b0c10;
+    --surface: #13141a;
+    --surface-2: #1c1d26;
+    --surface-3: #23242f;
+    --border: rgba(255,255,255,0.07);
+    --border-hover: rgba(255,255,255,0.14);
+    --accent: #6c63ff;
+    --accent-glow: rgba(108,99,255,0.18);
+    --accent-soft: rgba(108,99,255,0.08);
+    --text-primary: #f0f0f4;
+    --text-secondary: #8b8c99;
+    --text-muted: #52535f;
+    --success: #34d399;
+    --success-bg: rgba(52,211,153,0.08);
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+    --transition: 0.18s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  html { font-family: var(--font); background: var(--bg); color: var(--text-primary); min-height: 100vh; }
+  body { min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* ── Layout ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 32px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-icon {
+    width: 34px;
+    height: 34px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-icon svg { width: 18px; height: 18px; }
+  .logo-name {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+  }
+
+  .nav-section { display: flex; flex-direction: column; gap: 2px; }
+  .nav-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 12px;
+    margin-bottom: 6px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition);
+    text-decoration: none;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+  .nav-item:hover { background: var(--surface-2); color: var(--text-primary); }
+  .nav-item.active { background: var(--accent-soft); color: var(--accent); }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
+  .nav-item.active svg { opacity: 1; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .version-badge {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--success);
+    flex-shrink: 0;
+    box-shadow: 0 0 0 3px var(--success-bg);
+  }
+
+  /* ── Main ── */
+  .main {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .topbar {
+    border-bottom: 1px solid var(--border);
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar-title {
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .topbar-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 1px;
+  }
+  .topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: var(--mono);
+    padding: 4px 10px;
+    border-radius: 100px;
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+  .badge.active { background: var(--accent-soft); color: var(--accent); border-color: rgba(108,99,255,0.3); }
+
+  /* ── Content ── */
+  .content {
+    padding: 40px;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 28px;
+    align-items: start;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .panel-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-2);
+    flex-shrink: 0;
+  }
+  .panel-icon svg { width: 15px; height: 15px; color: var(--text-secondary); }
+  .panel-title { font-size: 14px; font-weight: 500; }
+  .panel-desc { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+  .panel-body { padding: 24px; }
+
+  /* ── Drop Zone ── */
+  .dropzone {
+    border: 1.5px dashed var(--border-hover);
+    border-radius: var(--radius-md);
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition);
+    position: relative;
+    background: var(--surface-2);
+  }
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .dropzone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .dz-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 16px;
+    background: var(--surface-3);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+  }
+  .dz-icon svg { width: 22px; height: 22px; color: var(--text-secondary); }
+  .dz-title { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .dz-sub { font-size: 13px; color: var(--text-secondary); }
+  .dz-link { color: var(--accent); text-decoration: none; }
+  .dz-formats {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .format-pill {
+    font-size: 11px;
+    font-family: var(--mono);
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 100px;
+    background: var(--surface-3);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  /* File preview */
+  .file-preview {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--radius-md);
+    background: var(--success-bg);
+    border: 1px solid rgba(52,211,153,0.15);
+    margin-top: 12px;
+  }
+  .file-preview.show { display: flex; }
+  .file-icon-wrap {
+    width: 36px; height: 36px;
+    background: rgba(52,211,153,0.12);
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .file-icon-wrap svg { width: 18px; height: 18px; color: var(--success); }
+  .file-name { font-size: 13px; font-weight: 500; }
+  .file-size { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+  .file-clear {
+    margin-left: auto;
+    width: 24px; height: 24px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted);
+    transition: background var(--transition), color var(--transition);
+  }
+  .file-clear:hover { background: rgba(248,113,113,0.12); color: var(--danger); }
+
+  /* ── Form Fields ── */
+  .field { margin-top: 20px; }
+  .field-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .field-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .input-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: border-color var(--transition);
+    overflow: hidden;
+  }
+  .input-wrap:focus-within { border-color: var(--accent); }
+  .input-wrap input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 15px;
+    padding: 11px 14px;
+  }
+  .input-wrap input::placeholder { color: var(--text-muted); }
+  .input-stepper {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border);
+  }
+  .step-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 32px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: background var(--transition), color var(--transition);
+    font-size: 13px;
+  }
+  .step-btn:hover { background: var(--surface-3); color: var(--text-primary); }
+
+  /* ── Submit Button ── */
+  .btn-generate {
+    width: 100%;
+    padding: 14px 24px;
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: #fff;
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: opacity var(--transition), transform var(--transition);
+    letter-spacing: -0.01em;
+  }
+  .btn-generate:hover { opacity: 0.88; }
+  .btn-generate:active { transform: scale(0.99); }
+  .btn-generate:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-generate svg { width: 17px; height: 17px; }
+
+  /* ── Progress ── */
+  .progress-panel {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-top: 20px;
+    grid-column: 1 / -1;
+  }
+  .progress-panel.show { display: block; }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .progress-label span { font-size: 13px; color: var(--text-secondary); }
+  .progress-label strong { font-size: 13px; font-family: var(--mono); color: var(--accent); }
+  .progress-track {
+    height: 4px;
+    background: var(--surface-3);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 100px;
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+  .progress-log {
+    margin-top: 16px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    max-height: 80px;
+    overflow-y: auto;
+    line-height: 1.8;
+  }
+  .log-line { display: block; }
+  .log-line.ok { color: var(--success); }
+  .log-line.err { color: var(--danger); }
+
+  /* ── Right Side Panel ── */
+  .side-col { display: flex; flex-direction: column; gap: 16px; }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .stat-icon {
+    width: 38px; height: 38px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .stat-icon svg { width: 18px; height: 18px; }
+  .stat-icon.purple { background: rgba(108,99,255,0.12); color: var(--accent); }
+  .stat-icon.teal   { background: rgba(52,211,153,0.1);  color: var(--success); }
+  .stat-icon.amber  { background: rgba(251,191,36,0.1);  color: var(--warning); }
+  .stat-val { font-size: 22px; font-weight: 600; letter-spacing: -0.04em; }
+  .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+
+  .info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+  }
+  .info-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-row strong { color: var(--text-primary); font-weight: 500; }
+
+  .tip-card {
+    background: var(--accent-soft);
+    border: 1px solid rgba(108,99,255,0.2);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+  }
+  .tip-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .tip-header svg { width: 15px; height: 15px; color: var(--accent); }
+  .tip-header span { font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: 0.05em; text-transform: uppercase; }
+  .tip-text { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+  /* ── Loading state ── */
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.25);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Responsive ── */
+  @media (max-width: 1024px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .content { grid-template-columns: 1fr; padding: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 14L9 4L15 14H3Z" fill="white" opacity="0.9"/>
+          <rect x="6.5" y="10" width="5" height="1.5" rx="0.75" fill="white" opacity="0.5"/>
+        </svg>
+      </div>
+      <span class="logo-name">QA Generator</span>
+    </div>
+
+    <nav class="nav-section">
+      <div class="nav-label">Workspace</div>
+      <a class="nav-item active" href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="2" y="2" width="5" height="5" rx="1"/>
+          <rect x="9" y="2" width="5" height="5" rx="1"/>
+          <rect x="2" y="9" width="5" height="5" rx="1"/>
+          <rect x="9" y="9" width="5" height="5" rx="1"/>
+        </svg>
+        Generate
+      </a>
+      <a class="nav-item" href="/review">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M2 4h12M2 8h8M2 12h10"/>
+        </svg>
+        Review Dataset
+      </a>
+      <a class="nav-item" href="/stats">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M2 13V9l3-3 3 3 4-5"/>
+        </svg>
+        Analytics
+      </a>
+    </nav>
+
+    <nav class="nav-section">
+      <div class="nav-label">Settings</div>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="8" cy="8" r="2.5"/>
+          <path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.5 3.5l1 1M11.5 11.5l1 1M12.5 3.5l-1 1M4.5 11.5l-1 1"/>
+        </svg>
+        Configuration
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="version-badge">
+        <div class="status-dot"></div>
+        v2.1 · Connected
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main Content ── -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div>
+        <div class="topbar-title">New Generation</div>
+        <div class="topbar-subtitle">Upload a document and configure your dataset</div>
+      </div>
+      <div class="topbar-actions">
+        <span class="badge active">
+          <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0"></span>
+          <!-- LLaMA 3.1 · 8B -->
+        </span>
+      </div>
+    </header>
+
+    <!-- Content Grid -->
+    <div class="content">
+
+      <!-- Left: Form -->
+      <div>
+        <form id="genForm" action="/generate" method="POST" enctype="multipart/form-data">
+
+          <!-- Document Panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-icon">
+                <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4">
+                  <rect x="2" y="1" width="11" height="13" rx="1.5"/>
+                  <path d="M5 5h5M5 8h5M5 11h3"/>
+                </svg>
+              </div>
+              <div>
+                <div class="panel-title">Source Document</div>
+                <div class="panel-desc">Upload the document to generate QA pairs from</div>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="dropzone" id="dropzone">
+                <input type="file" name="file" id="fileInput" accept=".pdf,.docx" />
+                <div class="dz-icon">
+                  <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M11 14V4M7 8l4-4 4 4"/>
+                    <path d="M3 17v1a1 1 0 001 1h14a1 1 0 001-1v-1"/>
+                  </svg>
+                </div>
+                <div class="dz-title">Drop your file here, or <a class="dz-link">browse</a></div>
+                <div class="dz-sub">Supports PDF and DOCX formats</div>
+                <div class="dz-formats">
+                  <span class="format-pill">.PDF</span>
+                  <span class="format-pill">.DOCX</span>
+                </div>
+              </div>
+
+              <!-- File preview -->
+              <div class="file-preview" id="filePreview">
+                <div class="file-icon-wrap">
+                  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M4 2h7l3 3v11a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                    <path d="M11 2v4h3"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="file-name" id="fileName">document.pdf</div>
+                  <div class="file-size" id="fileSize">2.4 MB</div>
+                </div>
+                <button type="button" class="file-clear" id="fileClear" title="Remove file">
+                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M2 2l10 10M12 2L2 12"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Config Panel -->
+          <div class="panel" style="margin-top: 20px;">
+            <div class="panel-header">
+              <div class="panel-icon">
+                <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4">
+                  <path d="M7.5 1v4m0 5v4M1 7.5h4m5 0h4"/>
+                  <circle cx="7.5" cy="7.5" r="2.5"/>
+                </svg>
+              </div>
+              <div>
+                <div class="panel-title">Generation Settings</div>
+                <div class="panel-desc">Configure output quantity and quality parameters</div>
+              </div>
+            </div>
+            <div class="panel-body">
+
+              <div class="field">
+                <div class="field-label">
+                  Number of QA pairs
+                  <span class="field-hint">· Recommended: 30–80</span>
+                </div>
+                <div class="input-wrap">
+                  <input type="number" name="pairs" id="pairsInput" value="40" min="5" max="500" />
+                  <div class="input-stepper">
+                    <button type="button" class="step-btn" id="stepUp">▴</button>
+                    <button type="button" class="step-btn" id="stepDown">▾</button>
+                  </div>
+                </div>
+              </div>
+              
+
+<!-- 🔥 MODEL SELECT (SEPARATE FIELD) -->
+<div class="field">
+  <div class="field-label">
+     Dataset Generator Model
+    <span class="field-hint">· Ollama evaluator</span>
+  </div>
+
+  <div class="input-wrap">
+    <select name="model" style="
+      flex:1;
+      background:none;
+      border:none;
+      outline:none;
+      color:var(--text-primary);
+      font-family:var(--font);
+      font-size:15px;
+      padding:11px 14px;
+      appearance:none;
+      cursor:pointer;
+    ">
+      <option value="">Default (LLaMA 3.1 · 8B)</option>
+      <option value="llama3.1:8b">LLaMA 3.1 · 8B</option>
+      <option value="mistral:latest">mistral:latest </option>
+      <option value="gemma:7b">Gemma · 7B</option>
+      <option value="phi3:mini">Phi-3 Mini</option>
+      <option value="gpt-oss:20b">GPT-OSS · 20B</option>
+    </select>
+  </div>
+</div>
+
+              <button class="btn-generate" id="generateBtn" type="submit" disabled>
+                <svg viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <path d="M2 8.5h13M9 3l6 5.5-6 5.5"/>
+                </svg>
+                Generate Dataset
+              </button>
+
+            </div>
+          </div>
+        </form>
+
+        <!-- Progress Panel -->
+        <div class="progress-panel" id="progressPanel">
+          <div class="progress-label">
+            <span id="progressStatus">Processing document…</span>
+            <strong id="progressPct">0%</strong>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-log" id="progressLog"></div>
+        </div>
+      </div>
+
+      <!-- Right: Stats + Tips -->
+      <div class="side-col">
+
+        <div class="stat-card">
+          <div class="stat-icon purple">
+            <svg viewBox="0 0 18 18" fill="currentColor">
+              <path d="M9 2a7 7 0 100 14A7 7 0 009 2zm1 9.5H8v-4h2v4zm0-5.5H8V4h2v2z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="stat-val" id="statPairs">40</div>
+            <div class="stat-label">QA pairs to generate</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon teal">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polyline points="2,12 6,8 10,10 16,4"/>
+            </svg>
+          </div>
+          <div>
+            <div class="stat-val">8</div>
+            <div class="stat-label">Question categories</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon amber">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="9" cy="9" r="7"/>
+              <path d="M9 5v4l3 2"/>
+            </svg>
+          </div>
+          <div>
+            <div class="stat-val" id="statTime">~2m</div>
+            <div class="stat-label">Estimated time</div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-title">How it works</div>
+          <div class="info-row" style="align-items:flex-start;gap:10px;padding:10px 0;">
+            <span style="width:22px;height:22px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</span>
+            <span style="font-size:13px;color:var(--text-secondary);line-height:1.5;">Upload your document — PDF or DOCX</span>
+          </div>
+          <div class="info-row" style="align-items:flex-start;gap:10px;padding:10px 0;">
+            <span style="width:22px;height:22px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</span>
+            <span style="font-size:13px;color:var(--text-secondary);line-height:1.5;">Set how many QA pairs you need</span>
+          </div>
+          <div class="info-row" style="align-items:flex-start;gap:10px;padding:10px 0;border-bottom:none;">
+            <span style="width:22px;height:22px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</span>
+            <span style="font-size:13px;color:var(--text-secondary);line-height:1.5;">Review, edit, and export your dataset</span>
+          </div>
+        </div>
+
+        <div class="tip-card">
+          <div class="tip-header">
+            <svg viewBox="0 0 15 15" fill="currentColor">
+              <path d="M7.5 1a6.5 6.5 0 100 13A6.5 6.5 0 007.5 1zm.6 9.8h-1.2V7h1.2v3.8zM7.5 6a.75.75 0 110-1.5A.75.75 0 017.5 6z"/>
+            </svg>
+            <span>Pro tip</span>
+          </div>
+          <div class="tip-text">For best results, use structured documents with clear sections. Longer documents with 5+ pages produce the most diverse question sets.</div>
+        </div>
+
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+const fileInput   = document.getElementById('fileInput');
+const dropzone    = document.getElementById('dropzone');
+const filePreview = document.getElementById('filePreview');
+const fileName    = document.getElementById('fileName');
+const fileSize    = document.getElementById('fileSize');
+const fileClear   = document.getElementById('fileClear');
+const generateBtn = document.getElementById('generateBtn');
+const pairsInput  = document.getElementById('pairsInput');
+const statPairs   = document.getElementById('statPairs');
+const statTime    = document.getElementById('statTime');
+const stepUp      = document.getElementById('stepUp');
+const stepDown    = document.getElementById('stepDown');
+const progressPanel = document.getElementById('progressPanel');
+const progressFill  = document.getElementById('progressFill');
+const progressPct   = document.getElementById('progressPct');
+const progressStatus = document.getElementById('progressStatus');
+const progressLog   = document.getElementById('progressLog');
+
+let hasFile = false;
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/1024/1024).toFixed(1) + ' MB';
+}
+
+function updateStats(pairs) {
+  statPairs.textContent = pairs;
+  const mins = Math.round(pairs * 3 / 60);
+  statTime.textContent = mins < 1 ? '<1m' : '~' + mins + 'm';
+}
+
+function showFile(file) {
+  hasFile = true;
+  fileName.textContent = file.name;
+  fileSize.textContent = formatBytes(file.size);
+  filePreview.classList.add('show');
+  dropzone.style.display = 'none';
+  generateBtn.disabled = false;
+}
+
+function clearFile() {
+  hasFile = false;
+  fileInput.value = '';
+  filePreview.classList.remove('show');
+  dropzone.style.display = '';
+  generateBtn.disabled = true;
+}
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) showFile(e.target.files[0]);
+});
+
+fileClear.addEventListener('click', clearFile);
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && (f.name.endsWith('.pdf') || f.name.endsWith('.docx'))) {
+    const dt = new DataTransfer();
+    dt.items.add(f);
+    fileInput.files = dt.files;
+    showFile(f);
+  }
+});
+
+pairsInput.addEventListener('input', () => updateStats(parseInt(pairsInput.value) || 40));
+stepUp.addEventListener('click', () => { pairsInput.value = Math.min(500, (parseInt(pairsInput.value)||40) + 5); updateStats(parseInt(pairsInput.value)); });
+stepDown.addEventListener('click', () => { pairsInput.value = Math.max(5, (parseInt(pairsInput.value)||40) - 5); updateStats(parseInt(pairsInput.value)); });
+
+updateStats(40);
+
+// Animate progress on form submit
+document.getElementById('genForm').addEventListener('submit', () => {
+  generateBtn.disabled = true;
+  generateBtn.innerHTML = '<span class="spinner"></span> Generating…';
+  progressPanel.classList.add('show');
+
+  let pct = 0;
+  const msgs = [
+    'Parsing document…',
+    'Chunking content into segments…',
+    'Scheduling question types…',
+    'Generating QA pairs in parallel…',
+    'Validating and filtering output…',
+    'Deduplicating dataset…',
+    'Finalising…'
+  ];
+  let step = 0;
+
+  const interval = setInterval(() => {
+    if (pct >= 92) { clearInterval(interval); return; }
+    pct += Math.random() * 4 + 1;
+    pct = Math.min(92, pct);
+    progressFill.style.width = pct + '%';
+    progressPct.textContent = Math.round(pct) + '%';
+
+    if (step < msgs.length && pct > (step + 1) * 13) {
+      const line = document.createElement('span');
+      line.className = 'log-line ok';
+      line.textContent = '✓ ' + msgs[step];
+      progressLog.appendChild(line);
+      progressLog.scrollTop = progressLog.scrollHeight;
+      progressStatus.textContent = msgs[step];
+      step++;
+    }
+  }, 800);
+});
+</script>
+</body>
+</html>

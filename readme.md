@@ -325,11 +325,4 @@ context_recall: 0.78
 
 ---
 
-## Notes & Limitations
 
-- The dataset creation app uses a local Ollama LLM — generation speed depends on your hardware
-- The evaluation pipeline makes multiple LLM calls per Q&A pair; larger datasets take proportionally longer
-- `bge-m3:latest` embeddings are required for Answer Relevancy scoring — ensure the model is pulled in Ollama
-- The `.env` file is intentionally excluded from version control; never commit API credentials
-- For best results, use structured documents with clear section headings; documents with 5+ pages produce more diverse question sets
-- The generation pipeline runs a 2× buffer to ensure enough high-quality pairs survive the validation filters

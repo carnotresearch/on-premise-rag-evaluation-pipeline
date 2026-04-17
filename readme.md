@@ -1,4 +1,4 @@
-# Local RAG Evaluation Pipeline
+# End-to-End On-Premise RAG Evaluation
 
 > A fully **on-premises**, open-source framework for evaluating RAG systems —
 > two evaluation approaches (custom-built + DeepEval), a human-in-the-loop
@@ -7,7 +7,7 @@
 
 ---
 
-## The Problem Nobody Talks About
+## The Hidden Bottleneck in RAG Systems
 
 Everyone has a tutorial on *building* a RAG pipeline.  
 Nobody talks about *evaluating* one.
@@ -23,19 +23,19 @@ no OpenAI, no cloud, no cost.
 
 ---
 
-## What makes this repo different
+## Key Differentiators of This Repository
 
-### 1. Two evaluation approaches — not one
+### 1. Two evaluation Methodologies
 
 Most repos give you one way to evaluate. This gives you two, so you can
 compare and choose what fits your use case:
 
-**Approach A — Custom-built evaluator**  
+**Methodologies A — Custom-built evaluator**  
 Every metric written from scratch. No framework abstractions, no black
 boxes. You can read exactly what is being measured and why. Uses
 high-level evaluation logic with BGE-M3 embeddings and a local LLM judge.
 
-**Approach B — DeepEval with local OSS models (tweaked)**  
+**Methodologies B — DeepEval with local OSS models (tweaked)**  
 Uses DeepEval's individual metric classes — not their `evaluate()`
 function. Why? Because `evaluate()` is async and open-source models
 running locally via Ollama are slow — async timeouts kill the run.
@@ -65,14 +65,14 @@ sending documents to an external API is not an option.
 
 ## Metrics
 
-All scores in `[0.0, 1.0]`. Higher is better.
-
 | Metric | What it measures |
 |---|---|
 | **Faithfulness** | Are the answer's claims grounded in retrieved context? Catches hallucination. |
 | **Answer Relevancy** | Does the answer actually address the question? |
 | **Context Precision** | Are retrieved chunks relevant to the question? Evaluates retriever accuracy. |
 | **Context Recall** | Does retrieved context cover the ground truth? Evaluates retriever completeness. |
+
+All scores in `[0.0, 1.0]`. Higher is better.
 
 ---
 
@@ -558,38 +558,6 @@ faster than the model can respond — and you get timeout errors.
 The fix: use DeepEval's individual metric classes directly, called
 **synchronously**, with tuned hyperparameters.
 
-```python
-from deepeval.metrics import (
-    FaithfulnessMetric,
-    AnswerRelevancyMetric,
-    ContextualPrecisionMetric,
-    ContextualRecallMetric,
-)
-from deepeval.models import OllamaModel
-from deepeval.test_case import LLMTestCase
-
-# Use OllamaModel — not OpenAI
-judge = OllamaModel(model="mistral")
-
-# Instantiate metrics individually with tuned thresholds
-faithfulness = FaithfulnessMetric(
-    threshold=0.5,
-    model=judge,
-    async_mode=False,       # critical — disable async for local models
-)
-
-# Score one test case at a time, synchronously
-test_case = LLMTestCase(
-    input=question,
-    actual_output=answer,
-    retrieval_context=contexts,
-    expected_output=ground_truth,
-)
-
-faithfulness.measure(test_case)
-print(faithfulness.score)
-```
-
 ### Why `async_mode=False` is not optional
 
 | Setting | Behavior with local models |
@@ -639,15 +607,6 @@ And return:
 ```
 
 ---
-
-## Notes & limitations
-
-- Mistral 7B+ is strongly recommended as the judge model for both approaches
-- The custom eval pipeline makes many LLM calls per query — runtime scales with dataset size
-- BGE-M3 must be pulled separately: `ollama pull bge-m3:latest`
-- The dataset creator is tuned for structured documents (SOPs, policy docs, technical manuals)
-- DeepEval's `OllamaModel` integration requires the `deepeval` package and Ollama running locally
-
 ## API Reference
 
 ### `GET /stats` — Response Schema

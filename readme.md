@@ -276,8 +276,6 @@ Every accepted pair is immediately written to `backup_dataset.json` so no progre
 **Deduplication**
 MD5-based hash deduplication on question text prevents near-identical questions from appearing in the final dataset.
 
-![Terminal — Generation Output](assets/terminal_generation.png)
-
 ### Web UI Routes
 
 | Route | Method | Description |

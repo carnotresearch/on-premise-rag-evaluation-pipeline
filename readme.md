@@ -1,17 +1,89 @@
-# RAG Evaluation Pipeline
+# Local RAG Evaluation Pipeline
 
-> A lightweight, modular evaluation framework for Retrieval-Augmented Generation (RAG) systems. This pipeline measures the quality of a RAG API across four key metrics and includes a web-based dataset creation tool for generating high-quality evaluation datasets from documents using a local LLM.
+> A fully **on-premises**, open-source framework for evaluating RAG systems —
+> two evaluation approaches (custom-built + DeepEval), a human-in-the-loop
+> dataset creation tool, and zero external API calls. Everything runs locally
+> via Ollama.
 
 ---
 
-## Metrics at a Glance
+## The problem nobody talks about
 
-| Metric | Description |
+Everyone has a tutorial on *building* a RAG pipeline.  
+Nobody talks about *evaluating* one.
+
+How do you know if your answers are faithful to the documents?  
+How do you know if your retriever is fetching the right chunks?  
+How do you know if a change made things better or worse?
+
+You need an evaluation pipeline. This repo gives you one — fully local,
+no OpenAI, no cloud, no cost.
+
+---
+
+## What makes this repo different
+
+### 1. Two evaluation approaches — not one
+
+Most repos give you one way to evaluate. This gives you two, so you can
+compare and choose what fits your use case:
+
+**Approach A — Custom-built evaluator**  
+Every metric written from scratch. No framework abstractions, no black
+boxes. You can read exactly what is being measured and why. Uses
+high-level evaluation logic with BGE-M3 embeddings and a local LLM judge.
+
+**Approach B — DeepEval with local OSS models (tweaked)**  
+Uses DeepEval's individual metric classes — not their `evaluate()`
+function. Why? Because `evaluate()` is async and open-source models
+running locally via Ollama are slow — async timeouts kill the run.
+Instead, metrics are called synchronously, with tuned hyperparameters
+(timeout, retries, thresholds) to work reliably with local models.
+This is the part most DeepEval tutorials skip entirely.
+
+### 2. Human-in-the-loop dataset creation
+
+No manual labelling. Upload a PDF or DOCX, and the local LLM generates
+a balanced evaluation dataset across 8 question types. Then review,
+edit, or delete any pair in real time via the web UI before saving.
+You stay in control of the dataset quality — the model does the heavy
+lifting.
+
+### 3. 100% on-premises
+
+No data leaves your machine. Generation, judging, embeddings — all
+running locally via Ollama. Designed for teams and use cases where
+sending documents to an external API is not an option.
+
+> ⚠️ **Judge model matters.** Both evaluation approaches require a
+> high-parameter open-source model. Mistral 7B+ is tested and 
+> recommended. Smaller models (1–3B) produce unreliable metric scores.
+
+---
+
+## Metrics
+
+All scores in `[0.0, 1.0]`. Higher is better.
+
+| Metric | What it measures |
 |---|---|
-| **Faithfulness** | Claims supported by retrieved context |
-| **Answer Relevancy** | Semantic match between question and answer |
-| **Context Precision** | Relevance of retrieved contexts |
-| **Context Recall** | Coverage of ground truth by contexts |
+| **Faithfulness** | Are the answer's claims grounded in retrieved context? Catches hallucination. |
+| **Answer Relevancy** | Does the answer actually address the question? |
+| **Context Precision** | Are retrieved chunks relevant to the question? Evaluates retriever accuracy. |
+| **Context Recall** | Does retrieved context cover the ground truth? Evaluates retriever completeness. |
+
+---
+
+## vs. existing approaches
+
+| | This repo | RAGAS | DeepEval (default) |
+|---|---|---|---|
+| Fully local / on-prem | ✅ | ❌ OpenAI default | ❌ OpenAI default |
+| Custom metric logic | ✅ from scratch | ❌ black box | ❌ black box |
+| DeepEval sync workaround | ✅ | ❌ | ❌ |
+| Built-in dataset creator | ✅ 8 question types | ❌ | ❌ |
+| Human-in-the-loop review | ✅ | ❌ | ❌ |
+| Cost | ✅ free | ❌ API cost | ❌ API cost |
 
 ---
 
@@ -233,6 +305,178 @@ Every generated Q&A pair passes through two validation stages before being accep
 ---
 
 ## Part 2: Evaluation Pipeline
+
+---
+
+## Deep dive — how each metric works
+
+All four metrics use a **local LLM as judge** and operate on atomic claims.
+No black boxes. Here is exactly what happens under the hood.
+
+---
+
+### Faithfulness
+
+**What it answers:** "Did the LLM make up anything not present in the retrieved context?"
+
+```
+Faithfulness = |Supported Claims| / |Total Claims in Answer|
+```
+
+**Step-by-step:**
+1. The judge LLM reads the answer and extracts every atomic factual claim
+2. For each claim, the judge checks all retrieved chunks — supported or not?
+3. Score = supported claims / total claims
+
+**Worked example:**
+
+> Question: *Why am I seeing Invalid username and Password?*  
+> Answer: *Your account is locked due to multiple failed login attempts. Contact the administrator. You can also reset via email which takes 24 hours.*  
+> Context: *Account locked due to failed attempts. Contact administrator to unlock.*
+
+| Claim | Verdict |
+|---|---|
+| Account is locked | ✅ supported |
+| Due to multiple failed login attempts | ✅ supported |
+| Contact the administrator | ✅ supported |
+| Reset via email takes 24 hours | ❌ not supported |
+
+```
+Faithfulness = 3 / 4 = 0.75
+```
+
+The LLM invented the 24-hour email reset detail — that 25% is hallucination.
+
+**Score interpretation:**
+
+| Score | Meaning | Action |
+|---|---|---|
+| 0.9 – 1.0 | Excellent | LLM is well-grounded. Almost no hallucination. |
+| 0.7 – 0.9 | Good | Minor hallucination. Review low-scoring answers. |
+| 0.5 – 0.7 | Poor | Significant hallucination. Tighten your system prompt. |
+| < 0.5 | Critical | LLM is largely ignoring the context. Check system prompt. |
+
+---
+
+### Answer Relevancy
+
+**What it answers:** "Did the LLM actually answer what was asked — or did it go off-topic?"
+
+```
+AnswerRelevancy = (1/N) × Σ cos_sim(embed(q), embed(qᵢ))
+
+cos_sim(A, B) = (A · B) / (||A|| × ||B||)
+```
+
+Where `q` is the original question and `qᵢ` are N reverse-generated questions.
+
+**Step-by-step:**
+1. The judge LLM reads the answer and generates N questions the answer could respond to
+2. Both the original question and each generated question are embedded via BGE-M3
+3. Cosine similarity is computed between the original and each generated question
+4. Score = mean of all similarity scores
+
+**Worked example:**
+
+> Question: *Why am I seeing Invalid username and Password?*  
+> Answer: *Your account has been locked. Please contact your administrator to unlock it.*
+
+| Generated question | Similarity |
+|---|---|
+| What causes an account lockout? | 0.91 |
+| How do I fix a locked account? | 0.88 |
+| Why is login failing? | 0.93 |
+
+```
+AnswerRelevancy = (0.91 + 0.88 + 0.93) / 3 = 0.907
+```
+
+**Why cosine similarity and not exact match?**  
+Cosine similarity captures semantic meaning, not word overlap. *"Why is login failing?"* and *"Why am I seeing Invalid username and Password?"* share almost no words but are semantically close — cosine similarity reflects this. BLEU would score them near zero.
+
+---
+
+### Context Precision
+
+**What it answers:** "Is the retriever fetching relevant chunks, or is it adding noise?"
+
+```
+ContextPrecision = |Relevant Retrieved Chunks| / |Total Retrieved Chunks|
+```
+
+Rank-aware variant (rewards relevant chunks appearing earlier):
+
+```
+ContextPrecision@K = Σ (Precisionₖ × relevanceₖ) / |Relevant Chunks|
+```
+
+Where `Precisionₖ = relevant chunks in top-k / k` and `relevanceₖ = 1` if chunk k is relevant.
+
+**Step-by-step:**
+1. For each retrieved chunk, the judge reads both the question and the chunk
+2. The judge decides: relevant or not relevant to answering this question?
+3. Score = relevant chunks / total chunks
+
+**Worked example:**
+
+> Question: *How do I unlock my account?*
+
+| Chunk | Verdict |
+|---|---|
+| "Account locked. Contact administrator to unlock." | ✅ relevant |
+| "Password reset steps: go to forgot password page..." | ✅ relevant |
+| "System maintenance scheduled for Sunday 2AM." | ❌ not relevant |
+| "New features added to dashboard in v2.1." | ❌ not relevant |
+
+```
+ContextPrecision = 2 / 4 = 0.50
+```
+
+Half the retrieved chunks were noise. Fix: tighten your similarity threshold, adjust chunk size, or tune your embedding model.
+
+---
+
+### Context Recall
+
+**What it answers:** "Did the retriever find *all* the information needed to answer correctly?"
+
+```
+ContextRecall = |GT Claims Covered by Context| / |Total GT Claims|
+```
+
+**Step-by-step:**
+1. The judge LLM splits the **ground truth** answer into atomic claims
+2. For each claim, check whether at least one retrieved chunk covers it
+3. Score = covered claims / total claims
+
+**Worked example:**
+
+> Ground truth: *Account is locked. Enter correct credentials. Contact admin if locked. Wait 30 minutes after 5 failed attempts.*
+
+| Claim | Covered? |
+|---|---|
+| Account is locked | ✅ chunk 1 |
+| Enter correct credentials | ✅ chunk 1 |
+| Contact admin if locked | ✅ chunk 2 |
+| Wait 30 minutes after 5 failed attempts | ❌ not in any chunk |
+
+```
+ContextRecall = 3 / 4 = 0.75
+```
+
+The retriever missed one important fact. Fix: expand your knowledge base, lower the similarity threshold, or increase top-k retrieved chunks.
+
+---
+
+### Reading all four scores together
+
+| Pattern | What it means |
+|---|---|
+| Low faithfulness, high recall | Retriever is finding the right chunks but LLM is hallucinating anyway |
+| High faithfulness, low recall | LLM stays grounded but retriever is missing key information |
+| Low precision, high recall | Retriever is fetching everything relevant — plus a lot of noise |
+| High precision, low recall | Retriever is accurate but too conservative — missing important chunks |
+| All four high | Your RAG pipeline is working well end-to-end |
 
 ### Metrics
 

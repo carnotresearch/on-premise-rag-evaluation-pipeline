@@ -1,4 +1,4 @@
-#  on-premise-rag-evaluation-pipeline
+#  On-Premise-Rag-Evaluation-Pipeline
 
 > A fully **on-premises**, open-source framework for evaluating RAG systems —
 > two evaluation methodologies, a human-in-the-loop

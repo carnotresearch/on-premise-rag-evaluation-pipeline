@@ -276,8 +276,6 @@ Every accepted pair is immediately written to `backup_dataset.json` so no progre
 **Deduplication**
 MD5-based hash deduplication on question text prevents near-identical questions from appearing in the final dataset.
 
-![Terminal — Generation Output](assets/terminal_generation.png)
-
 ### Web UI Routes
 
 | Route | Method | Description |
@@ -609,15 +607,6 @@ And return:
 ```
 
 ---
-
-## Notes & limitations
-
-- Mistral 7B+ is strongly recommended as the judge model for both approaches
-- The custom eval pipeline makes many LLM calls per query — runtime scales with dataset size
-- BGE-M3 must be pulled separately: `ollama pull bge-m3:latest`
-- The dataset creator is tuned for structured documents (SOPs, policy docs, technical manuals)
-- DeepEval's `OllamaModel` integration requires the `deepeval` package and Ollama running locally
-
 ## API Reference
 
 ### `GET /stats` — Response Schema

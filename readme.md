@@ -576,17 +576,6 @@ python -m eval.deepeval.main
 ![Deepeval — Evaluation Output](assets/deep_eval_01.png)
 ![Deepeval — Evaluation Output](assets/deep_eval_result.png)
 
-*Run on a Geo-Intelligence Platform SOP document.*
-
-| Metric | Custom eval | DeepEval |
-|---|---|---|
-| Faithfulness | 0.83 | — |
-| Answer Relevancy | 0.72 | — |
-| Context Precision | 1.00 | — |
-| Context Recall | 0.78 | — |
-
----
-
 ## Output files
 
 **`average_results.csv`** — aggregated averages across the full dataset.

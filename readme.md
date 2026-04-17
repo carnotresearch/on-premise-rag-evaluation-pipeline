@@ -7,16 +7,18 @@
 
 ---
 
-## The problem nobody talks about
+## The Problem Nobody Talks About
 
 Everyone has a tutorial on *building* a RAG pipeline.  
 Nobody talks about *evaluating* one.
 
-How do you know if your answers are faithful to the documents?  
-How do you know if your retriever is fetching the right chunks?  
-How do you know if a change made things better or worse?
+- How do you know if your answers are faithful to the documents?  
+- How do you know if your retriever is fetching the right chunks?  
+- How do you know if a change made things better or worse?
 
-You need an evaluation pipeline. This repo gives you one — fully local,
+You need an evaluation pipeline.
+
+This repo gives you one — fully local,  
 no OpenAI, no cloud, no cost.
 
 ---

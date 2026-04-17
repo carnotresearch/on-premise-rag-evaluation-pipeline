@@ -569,7 +569,7 @@ context_recall: 0.78
 
 | question | response | ground_truth | context | faithfulness | answer_relevancy | context_precision | context_recall |
 |---|---|---|---|---|---|---|---|
-| What is RAG? | RAG combines retrieval with generation | Retrieval-Augmented Generation combines retrieval + LLM | "RAG (Retrieval-Augmented Generation) is a framework that enhances LLM responses by retrieving relevant documents from a knowledge base and using them as context during generation." | 0.83 | 0.72 | 1.00 | 0.78 |
+| What is RAG? | RAG combines retrieval with generation | Retrieval-Augmented Generation combines retrieval + LLM | "RAG (Retrieval-Augmented Generation) is a framework that enhances LLM responses by retrieving relevant documents...." | 0.83 | 0.72 | 1.00 | 0.78 |
 
 ---
 

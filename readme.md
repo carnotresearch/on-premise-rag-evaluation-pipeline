@@ -53,7 +53,7 @@ Every metric written from scratch. No framework abstractions, no black
 boxes. You can read exactly what is being measured and why. Uses
 high-level evaluation logic with BGE-M3 embeddings and a local LLM judge.
 
-**DeepEval with local OSS models (tweaked)**  
+**DeepEval with local OSS models**  
 Uses DeepEval's individual metric classes — not their `evaluate()`
 function. Why? Because `evaluate()` is async and open-source models
 running locally via Ollama are slow — async timeouts kill the run.

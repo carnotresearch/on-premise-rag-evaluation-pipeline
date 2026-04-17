@@ -592,16 +592,6 @@ faster than the model can respond — and you get timeout errors.
 The fix: use DeepEval's individual metric classes directly, called
 **synchronously**, with tuned hyperparameters.
 
-### Why `async_mode=False` is not optional
-
-| Setting | Behavior with local models |
-|---|---|
-| `async_mode=True` (default) | Multiple concurrent LLM calls → Ollama queues them → timeouts |
-| `async_mode=False` | One call at a time → slower but stable → no timeouts |
-
-With a fast GPU and a quantized model, the speed difference is acceptable.
-With CPU inference, synchronous mode is the only reliable option.
-
 ```bash
 python -m eval.deepeval.main
 ```

@@ -306,7 +306,7 @@ Every generated Q&A pair passes through two validation stages before being accep
 
 ---
 
-## Part 2: Evaluation Pipeline
+## Part 2A — Custom evaluation (built from scratch)
 
 ---
 
@@ -546,6 +546,107 @@ context_recall: 0.78
 |---|---|---|---|
 
 ---
+
+## Part 2B — DeepEval evaluation (tweaked for local OSS models)
+
+This is the part most DeepEval tutorials get wrong.
+
+DeepEval's `evaluate()` function is async. When your judge model is a
+large open-source model running locally via Ollama, async calls pile up
+faster than the model can respond — and you get timeout errors.
+
+The fix: use DeepEval's individual metric classes directly, called
+**synchronously**, with tuned hyperparameters.
+
+```python
+from deepeval.metrics import (
+    FaithfulnessMetric,
+    AnswerRelevancyMetric,
+    ContextualPrecisionMetric,
+    ContextualRecallMetric,
+)
+from deepeval.models import OllamaModel
+from deepeval.test_case import LLMTestCase
+
+# Use OllamaModel — not OpenAI
+judge = OllamaModel(model="mistral")
+
+# Instantiate metrics individually with tuned thresholds
+faithfulness = FaithfulnessMetric(
+    threshold=0.5,
+    model=judge,
+    async_mode=False,       # critical — disable async for local models
+)
+
+# Score one test case at a time, synchronously
+test_case = LLMTestCase(
+    input=question,
+    actual_output=answer,
+    retrieval_context=contexts,
+    expected_output=ground_truth,
+)
+
+faithfulness.measure(test_case)
+print(faithfulness.score)
+```
+
+### Why `async_mode=False` is not optional
+
+| Setting | Behavior with local models |
+|---|---|
+| `async_mode=True` (default) | Multiple concurrent LLM calls → Ollama queues them → timeouts |
+| `async_mode=False` | One call at a time → slower but stable → no timeouts |
+
+With a fast GPU and a quantized model, the speed difference is acceptable.
+With CPU inference, synchronous mode is the only reliable option.
+
+```bash
+python -m eval.deepeval.main
+```
+
+---
+
+## Sample results
+
+*Run on a Geo-Intelligence Platform SOP document.*
+
+| Metric | Custom eval | DeepEval |
+|---|---|---|
+| Faithfulness | 0.83 | — |
+| Answer Relevancy | 0.72 | — |
+| Context Precision | 1.00 | — |
+| Context Recall | 0.78 | — |
+
+---
+
+## Output files
+
+**`average_results.csv`** — aggregated averages across the full dataset.
+
+---
+
+## RAG API contract
+
+Your RAG API must accept:
+POST /ask
+{"question": "..."}
+And return:
+```json
+{
+  "answer": "...",
+  "contexts": ["chunk 1", "chunk 2", "..."]
+}
+```
+
+---
+
+## Notes & limitations
+
+- Mistral 7B+ is strongly recommended as the judge model for both approaches
+- The custom eval pipeline makes many LLM calls per query — runtime scales with dataset size
+- BGE-M3 must be pulled separately: `ollama pull bge-m3:latest`
+- The dataset creator is tuned for structured documents (SOPs, policy docs, technical manuals)
+- DeepEval's `OllamaModel` integration requires the `deepeval` package and Ollama running locally
 
 ## API Reference
 

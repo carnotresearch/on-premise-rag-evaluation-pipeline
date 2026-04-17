@@ -1,7 +1,7 @@
 # End-to-End On-Premise RAG Evaluation
 
 > A fully **on-premises**, open-source framework for evaluating RAG systems —
-> two evaluation approaches (custom-built + DeepEval), a human-in-the-loop
+> two evaluation methodologies, a human-in-the-loop
 > dataset creation tool, and zero external API calls. Everything runs locally
 > via Ollama.
 
@@ -25,23 +25,15 @@ no OpenAI, no cloud, no cost.
 
 ## Key Differentiators of This Repository
 
-### 1. Two evaluation Methodologies
+### 1. 100% on-premises
 
-Most repos give you one way to evaluate. This gives you two, so you can
-compare and choose what fits your use case:
+No data leaves your machine. Generation, judging, embeddings — all
+running locally via Ollama. Designed for teams and use cases where
+sending documents to an external API is not an option.
 
-**Methodologies A — Custom-built evaluator**  
-Every metric written from scratch. No framework abstractions, no black
-boxes. You can read exactly what is being measured and why. Uses
-high-level evaluation logic with BGE-M3 embeddings and a local LLM judge.
-
-**Methodologies B — DeepEval with local OSS models (tweaked)**  
-Uses DeepEval's individual metric classes — not their `evaluate()`
-function. Why? Because `evaluate()` is async and open-source models
-running locally via Ollama are slow — async timeouts kill the run.
-Instead, metrics are called synchronously, with tuned hyperparameters
-(timeout, retries, thresholds) to work reliably with local models.
-This is the part most DeepEval tutorials skip entirely.
+> ⚠️ **Judge model matters.** Both evaluation approaches require a
+> high-parameter open-source model. Mistral 7B+ is tested and 
+> recommended. Smaller models (1–3B) produce unreliable metric scores.
 
 ### 2. Human-in-the-loop dataset creation
 
@@ -51,15 +43,23 @@ edit, or delete any pair in real time via the web UI before saving.
 You stay in control of the dataset quality — the model does the heavy
 lifting.
 
-### 3. 100% on-premises
+### 3. Two evaluation Methodologies
 
-No data leaves your machine. Generation, judging, embeddings — all
-running locally via Ollama. Designed for teams and use cases where
-sending documents to an external API is not an option.
+Most repos give you one way to evaluate. This gives you two, so you can
+compare and choose what fits your use case:
 
-> ⚠️ **Judge model matters.** Both evaluation approaches require a
-> high-parameter open-source model. Mistral 7B+ is tested and 
-> recommended. Smaller models (1–3B) produce unreliable metric scores.
+**Custom-built evaluator**  
+Every metric written from scratch. No framework abstractions, no black
+boxes. You can read exactly what is being measured and why. Uses
+high-level evaluation logic with BGE-M3 embeddings and a local LLM judge.
+
+**DeepEval with local OSS models (tweaked)**  
+Uses DeepEval's individual metric classes — not their `evaluate()`
+function. Why? Because `evaluate()` is async and open-source models
+running locally via Ollama are slow — async timeouts kill the run.
+Instead, metrics are called synchronously, with tuned hyperparameters
+(timeout, retries, thresholds) to work reliably with local models.
+This is the part most DeepEval tutorials skip entirely.
 
 ---
 
@@ -511,15 +511,47 @@ The RAG API must accept `POST /ask` with body `{"question": "..."}` and return:
   "contexts": ["chunk 1", "chunk 2", "..."]
 }
 ```
+## Adapting to Your RAG Pipeline
+
+The evaluation pipeline calls your RAG system inside the function responsible for fetching responses
+(e.g., `get_rag_response()` or the API call block in the evaluation script).
+
+If your RAG API differs from the default setup, you can modify this function accordingly.
+
+---
+
+##  What You May Need to Adjust
+
+* **Endpoint** → Change the API route (e.g., `/ask` → `/generate`)
+* **Request Payload** → Update input fields (e.g., `question` → `query`)
+* **Response Mapping** → Extract the correct fields from your API response
+
+---
+
+## Expected Output Format
+
+Your function must return:
+
+* **`ans`** → `str`
+
+  * The final generated answer from your RAG system
+
+* **`ctxs`** → `List[str]`
+
+  * A list of retrieved context chunks used for generation
+
+---
+
+##  Note
+
+As long as you correctly map your API response to these two variables (`ans`, `ctxs`),
+the evaluation pipeline will work seamlessly with your RAG system.
 
 **3. Run evaluation**
 
 ```bash
 python -m eval.main
 ```
-
-![Terminal — Evaluation Output](assets/terminal_eval.png)
-
 **Sample output:**
 
 ```
@@ -537,11 +569,15 @@ context_recall: 0.78
 
 | question | response | ground_truth | context | faithfulness | answer_relevancy | context_precision | context_recall |
 |---|---|---|---|---|---|---|---|
+| What is RAG? | RAG combines retrieval with generation | Retrieval-Augmented Generation combines retrieval + LLM | "RAG (Retrieval-Augmented Generation) is a framework that enhances LLM responses by retrieving relevant documents from a knowledge base and using them as context during generation." | 0.83 | 0.72 | 1.00 | 0.78 |
+
+---
 
 **`average_results.csv`** — aggregated scores:
 
 | avg_faithfulness | avg_answer_relevancy | avg_context_precision | avg_context_recall |
 |---|---|---|---|
+| 0.83 | 0.72 | 1.00 | 0.78 |
 
 ---
 
@@ -569,33 +605,17 @@ With CPU inference, synchronous mode is the only reliable option.
 ```bash
 python -m eval.deepeval.main
 ```
-
 ---
-
-## Sample results
-![Deepeval — Evaluation Output](assets/deep_eval_01.png)
-![Deepeval — Evaluation Output](assets/deep_eval_result.png)
-
 ## Output files
 
 **`average_results.csv`** — aggregated averages across the full dataset.
 
----
-
-## RAG API contract
-
-Your RAG API must accept:
-POST /ask
-{"question": "..."}
-And return:
-```json
-{
-  "answer": "...",
-  "contexts": ["chunk 1", "chunk 2", "..."]
-}
-```
+| avg_faithfulness | avg_answer_relevancy | avg_context_precision | avg_context_recall |
+|---|---|---|---|
+| 0.83 | 0.72 | 1.00 | 0.78 |
 
 ---
+
 ## API Reference
 
 ### `GET /stats` — Response Schema
